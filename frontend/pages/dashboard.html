@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – FitAI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    /* ── App Shell ─────────────────────────────────────────── */
+    .app-shell {
+      display: flex;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ── Left Sidebar Nav ──────────────────────────────────── */
+    .nav-sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: #ffffff;
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 0.75rem;
+      position: sticky;
+      top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .nav-section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem 0.35rem;
+      margin-top: 0.5rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      font-family: var(--font-body);
+    }
+
+    .nav-item:hover {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    .nav-item.active {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 1.1rem;
+      width: 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nav-item .nav-badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.1rem 0.45rem;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    /* ── Main Content Area ─────────────────────────────────── */
+    .main-area {
+      flex: 1;
+      overflow-x: hidden;
+      padding: 2rem 2rem 3rem;
+      min-width: 0;
+    }
+
+    /* ── Section Panels ────────────────────────────────────── */
+    .section-panel {
+      display: none;
+      animation: fadeInUp 0.25s ease;
+    }
+
+    .section-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Page Header ───────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Dashboard Grid ────────────────────────────────────── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .dash-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+    .dash-main    { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    /* ── Stats Bar ─────────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Macros ────────────────────────────────────────────── */
+    .macros-section { display: flex; align-items: center; gap: 2rem; }
+    .macro-legend   { flex: 1; }
+
+    .macro-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .macro-item:last-child { border-bottom: none; }
+    .macro-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+    .macro-val { font-weight: 700; font-family: var(--font-head); }
+
+    /* ── Timeline ──────────────────────────────────────────── */
+    .timeline-bar {
+      background: var(--primary-light);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .timeline-weeks {
+      font-family: var(--font-head);
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    /* ── Empty / Loading ───────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .empty-state h2 { margin-bottom: 0.75rem; color: var(--text); }
+
+    /* ════════════════════════════════════════════════════════
+       PROGRESS TRACKER SECTION
+    ════════════════════════════════════════════════════════ */
+    .progress-header-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-metric-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    }
+
+    .progress-metric-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-metric-value {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .progress-metric-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .goal-progress-wrap {
+      margin-top: 0.75rem;
+    }
+
+    .goal-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    /* ════════════════════════════════════════════════════════
+       BMI CHART LEGEND
+    ════════════════════════════════════════════════════════ */
+    .bmi-chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .bmi-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .bmi-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .bmi-legend-band {
+      width: 24px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: rgba(0, 200, 150, 0.2);
+      border: 1px solid rgba(0, 200, 150, 0.5);
+    }
+
+    /* ════════════════════════════════════════════════════════
+       WORKOUT HEATMAP
+    ════════════════════════════════════════════════════════ */
+    .heatmap-container {
+      margin-top: 0.5rem;
+    }
+
+    .heatmap-month-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .heatmap-month-label span {
+      font-family: var(--font-head);
+      font-size: 0.85rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .heatmap-week-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .heatmap-day-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .heatmap-day-label {
+      text-align: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: #F3F4F6;
+      cursor: default;
+      transition: transform 0.1s, box-shadow 0.1s;
+      position: relative;
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.15);
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .heatmap-cell[data-intensity="0"] { background: #F3F4F6; }
+    .heatmap-cell[data-intensity="1"] { background: #D1FAE5; }
+    .heatmap-cell[data-intensity="2"] { background: #6EE7B7; }
+    .heatmap-cell[data-intensity="3"] { background: #10B981; }
+    .heatmap-cell[data-intensity="4"] { background: #047857; }
+
+    .heatmap-cell.today-cell {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .heatmap-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1A1A2E;
+      color: white;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100;
+      font-family: var(--font-head);
+    }
+
+    .heatmap-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #1A1A2E;
+    }
+
+    .heatmap-cell:hover .heatmap-tooltip {
+      display: block;
+    }
+
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .heatmap-legend-cells {
+      display: flex;
+      gap: 3px;
+    }
+
+    .heatmap-legend-cell {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .heatmap-stats-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .heatmap-stat {
+      text-align: center;
+    }
+
+    .heatmap-stat-val {
+      font-family: var(--font-head);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .heatmap-stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+      font-weight: 500;
+    }
+
+    /* ════════════════════════════════════════════════════════
+       WORKOUT LOG SECTION
+    ════════════════════════════════════════════════════════ */
+    .workout-log-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .day-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-head);
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .day-pill.rest { background: var(--border); }
+    .day-pill.light { background: #D1FAE5; color: #065F46; }
+    .day-pill.moderate { background: #A7F3D0; color: #065F46; }
+    .day-pill.intense { background: var(--primary); color: white; }
+
+    .week-days {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+
+    .workout-schedule {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .workout-day-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      background: #F9FAFB;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .workout-day-row .day-name {
+      font-weight: 600;
+      font-family: var(--font-head);
+      width: 36px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .workout-day-row.active-day {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .exercise-tag {
+      display: inline-flex;
+      padding: 0.2rem 0.6rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--text);
+    }
+
+    /* ════════════════════════════════════════════════════════
+       NUTRITION SECTION
+    ════════════════════════════════════════════════════════ */
+    .nutrition-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .macro-bar-item {
+      margin-bottom: 1rem;
+    }
+
+    .macro-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      font-family: var(--font-head);
+    }
+
+    .macro-bar-track {
+      height: 10px;
+      background: var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .macro-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .meal-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+      transition: box-shadow 0.15s;
+    }
+
+    .meal-card:hover { box-shadow: 0 4px 16px rgba(0,200,150,0.12); }
+
+    .meal-emoji {
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+
+    .meal-name {
+      font-weight: 700;
+      font-family: var(--font-head);
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .meal-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .meal-cal {
+      margin-left: auto;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════════════════
+       AI INSIGHTS SECTION
+    ════════════════════════════════════════════════════════ */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .insight-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .insight-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      width: fit-content;
+    }
+
+    .insight-tag.recovery { background: #DBEAFE; color: #1D4ED8; }
+    .insight-tag.strength { background: #D1FAE5; color: #065F46; }
+    .insight-tag.nutrition { background: #FEF3C7; color: #92400E; }
+    .insight-tag.milestone { background: #EDE9FE; color: #5B21B6; }
+
+    .insight-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .insight-body {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── Mobile Sidebar Toggle ─────────────────────────────── */
+    .mobile-nav-toggle {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-head);
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .workout-log-grid { grid-template-columns: 1fr; }
+      .nutrition-grid { grid-template-columns: 1fr; }
+      .insights-grid { grid-template-columns: 1fr; }
+      .progress-header-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .nav-sidebar {
+        position: fixed;
+        left: -260px;
+        top: 64px;
+        height: calc(100vh - 64px);
+        z-index: 200;
+        transition: left 0.25s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+      }
+      .nav-sidebar.open { left: 0; }
+      .mobile-nav-toggle { display: flex; }
+      .main-area { padding: 1rem; }
+      .progress-header-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 500px) {
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ════════════════════════════════════════════════════════
+       AI CHAT ASSISTANT
+    ════════════════════════════════════════════════════════ */
+ 
+    /* Floating action button */
+    #chat-fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 200, 150, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+ 
+    #chat-fab:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 28px rgba(0, 200, 150, 0.55);
+    }
+ 
+    #chat-fab .fab-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #FF6B6B;
+      color: white;
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 10px;
+      font-family: var(--font-head);
+      border: 2px solid white;
+      line-height: 1;
+    }
+ 
+    /* Chat panel */
+    #chat-panel {
+      position: fixed;
+      bottom: 5.5rem;
+      right: 2rem;
+      width: 360px;
+      max-height: 520px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+      display: flex;
+      flex-direction: column;
+      z-index: 998;
+      overflow: hidden;
+ 
+      /* Hidden state */
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px) scale(0.97);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+ 
+    #chat-panel.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0) scale(1);
+    }
+ 
+    /* Header */
+    .chat-panel-header {
+      background: var(--primary);
+      padding: 0.9rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+ 
+    .chat-panel-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+ 
+    .chat-panel-title {
+      color: white;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.9rem;
+      line-height: 1.1;
+    }
+ 
+    .chat-panel-sub {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.72rem;
+      margin-top: 0.1rem;
+    }
+ 
+    .chat-close-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.2rem;
+      line-height: 1;
+    }
+ 
+    .chat-close-btn:hover { color: white; }
+ 
+    /* Messages area */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background: #F9FAFB;
+      scroll-behavior: smooth;
+    }
+ 
+    .chat-msg-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+ 
+    .chat-msg-wrap.user  { align-items: flex-end; }
+    .chat-msg-wrap.ai    { align-items: flex-start; }
+ 
+    .chat-bubble {
+      max-width: 82%;
+      padding: 0.65rem 0.9rem;
+      border-radius: 14px;
+      font-size: 0.855rem;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+ 
+    .chat-bubble.user {
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+ 
+    .chat-bubble.ai {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+ 
+    /* Typing indicator */
+    .chat-typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 0.2rem 0.1rem;
+    }
+ 
+    .chat-typing span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: inline-block;
+      opacity: 0.4;
+      animation: chatDot 1.1s infinite;
+    }
+ 
+    .chat-typing span:nth-child(2) { animation-delay: 0.18s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.36s; }
+ 
+    @keyframes chatDot {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+      40%           { transform: translateY(-5px); opacity: 1; }
+    }
+ 
+    /* Quick suggestion chips */
+    .chat-chips {
+      padding: 0.6rem 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      border-top: 1px solid var(--border);
+      background: white;
+      flex-shrink: 0;
+    }
+ 
+    .chat-chip {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      color: var(--text-muted);
+      background: white;
+      font-family: var(--font-body);
+      transition: all 0.12s;
+    }
+ 
+    .chat-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary-dark);
+      background: var(--primary-light);
+    }
+ 
+    /* Input row */
+    .chat-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      border-top: 1px solid var(--border);
+      background: white;
+      flex-shrink: 0;
+    }
+ 
+    #chat-input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.875rem;
+      font-family: var(--font-body);
+      outline: none;
+      background: #F9FAFB;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+ 
+    #chat-input:focus { border-color: var(--primary); background: white; }
+ 
+    #chat-send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: none;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+ 
+    #chat-send-btn:hover    { background: var(--primary-dark); }
+    #chat-send-btn:disabled { background: var(--border); cursor: not-allowed; }
+ 
+    /* Mobile tweaks */
+    @media (max-width: 500px) {
+      #chat-panel {
+        right: 0.75rem;
+        left: 0.75rem;
+        width: auto;
+        bottom: 5rem;
+      }
+      #chat-fab { bottom: 1.25rem; right: 1.25rem; }
+    }
+
+
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="logo">Fit<span>AI</span></a>
+    <div class="nav-links">
+      <span id="nav-username" style="font-weight:600; color:var(--primary)"></span>
+      <a href="/input">New Assessment</a>
+      <a href="#" onclick="logout()" style="color:var(--accent)">Logout</a>
+    </div>
+  </nav>
+
+  <div class="app-shell">
+
+    <!-- ── Left Sidebar Navigation ───────────────────────── -->
+    <aside class="nav-sidebar" id="nav-sidebar">
+
+      <div class="nav-section-label">Main</div>
+
+      <button class="nav-item active" onclick="switchSection('dashboard', this)">
+        <span class="nav-icon"></span> Dashboard
+      </button>
+
+      <button class="nav-item" onclick="switchSection('progress', this)">
+        <span class="nav-icon"></span> Progress Tracker
+      </button>
+
+      <button class="nav-item" onclick="switchSection('workout', this)">
+        <span class="nav-icon"></span> Workout Log
+      </button>
+
+      <button class="nav-item" onclick="switchSection('nutrition', this)">
+        <span class="nav-icon"></span> Nutrition
+      </button>
+
+      <div class="nav-section-label">Intelligence</div>
+
+      <button class="nav-item" onclick="switchSection('insights', this)">
+        <span class="nav-icon">🤖</span> AI Insights
+        <span class="nav-badge">NEW</span>
+      </button>
+
+      <div style="flex: 1;"></div>
+
+      <div style="padding: 0.75rem; border-top: 1px solid var(--border); margin-top: 1rem;">
+        <a href="/input" class="btn btn-primary" style="width:100%; justify-content:center; font-size:0.85rem; padding:0.6rem 1rem;">
+          + New Assessment
+        </a>
+      </div>
+
+    </aside>
+
+    <!-- ── Main Content ───────────────────────────────────── -->
+    <main class="main-area">
+
+      <!-- Mobile nav toggle -->
+      <button class="mobile-nav-toggle" onclick="toggleMobileNav()">
+        ☰ <span id="mobile-section-name">Dashboard</span>
+      </button>
+
+      <!-- ══════════════════════════════════════════════════
+           SECTION 1: DASHBOARD
+      ══════════════════════════════════════════════════ -->
+      <div id="section-dashboard" class="section-panel active">
+
+        <div class="page-header">
+          <div>
+            <h1 style="font-size:1.8rem;">Your Dashboard</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem;" id="last-updated">Loading...</p>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" style="text-align:center; padding:3rem;">
+          <div class="spinner" style="border-color:rgba(0,200,150,0.3); border-top-color:var(--primary); width:40px; height:40px; margin:0 auto;"></div>
+          <p style="margin-top:1rem; color:var(--text-muted);">Loading your fitness data...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state" style="display:none;">
+          <div style="font-size:4rem; margin-bottom:1rem;">🏋️</div>
+          <h2>No fitness data yet</h2>
+          <p>Complete your first assessment to see your personalised AI analysis.</p>
+          <a href="/input" class="btn btn-primary" style="margin-top:1.5rem;">Start Assessment →</a>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" style="display:none;">
+
+          <!-- Stats Bar -->
+          <div class="stats-bar">
+            <div class="stat-card">
+              <div class="stat-label">BMI</div>
+              <div class="stat-value" id="stat-bmi">—</div>
+              <div id="stat-bmi-cat" style="margin-top:0.25rem;"></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Daily Calories</div>
+              <div class="stat-value" id="stat-cal">—</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">kcal/day</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Workout Type</div>
+              <div class="stat-value" id="stat-workout" style="font-size:1rem; line-height:1.3; margin-top:0.5rem;">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Weeks to Goal</div>
+              <div class="stat-value" id="stat-weeks">—</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">estimated</div>
+            </div>
+          </div>
+
+          <!-- Main Grid -->
+          <div class="dashboard-grid">
+
+            <!-- Dashboard Sidebar -->
+            <div class="dash-sidebar">
+
+              <!-- Profile Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-icon">👤</div>
+                  <h3 style="font-size:1rem;">Profile</h3>
+                </div>
+                <div id="profile-details" style="font-size:0.9rem; display:flex; flex-direction:column; gap:0.5rem;"></div>
+              </div>
+
+              <!-- Workout Plan Card -->
+              <div class="card">
+                <div class="card-header">
+                  <h3 style="font-size:1rem;">Workout Plan</h3>
+                </div>
+                <div id="workout-type" style="font-weight:700; font-family:var(--font-head); color:var(--primary); margin-bottom:0.75rem; font-size:0.95rem;"></div>
+                <ul class="workout-list" id="workout-list"></ul>
+              </div>
+
+              <!-- Macros Card -->
+              <div class="card">
+                <div class="card-header">
+                  <h3 style="font-size:1rem;">Daily Macros</h3>
+                </div>
+                <div class="macros-section">
+                  <canvas id="macros-chart" width="100" height="100" style="flex-shrink:0;"></canvas>
+                  <div class="macro-legend" id="macro-legend"></div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Dashboard Main Content -->
+            <div class="dash-main">
+
+              <!-- Timeline Prediction -->
+              <div id="timeline-section" class="card" style="display:none;">
+                <div class="card-header">
+                  <div class="card-icon">📅</div>
+                  <h3 style="font-size:1rem;">AI Weight-Loss Timeline</h3>
+                  <span style="font-size:0.75rem; background:var(--primary-light); color:var(--primary-dark); padding:0.2rem 0.6rem; border-radius:10px; font-weight:600; font-family:var(--font-head);">Linear Regression</span>
+                </div>
+                <div class="timeline-bar">
+                  <div style="font-size:2.5rem; flex-shrink:0;"></div>
+                  <div>
+                    <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0.25rem;">Estimated time to reach goal</div>
+                    <div>
+                      <span class="timeline-weeks" id="timeline-weeks">—</span>
+                      <span style="font-size:1rem; font-weight:600; color:var(--text-muted);"> weeks</span>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;" id="timeline-detail"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Weight Progress Chart -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-icon"></div>
+                  <h3 style="font-size:1rem;">Weight History</h3>
+                </div>
+                <canvas id="weight-chart" height="160"></canvas>
+                <p id="chart-placeholder" style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:2rem; display:none;">
+                  Complete multiple assessments to track your progress here.
+                </p>
+              </div>
+
+              <!-- Calorie History Chart -->
+              <div class="card">
+                <div class="card-header">
+                  <h3 style="font-size:1rem;">Calorie Recommendations Over Time</h3>
+                </div>
+                <canvas id="calorie-chart" height="140"></canvas>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           SECTION 2: PROGRESS TRACKER
+      ══════════════════════════════════════════════════ -->
+      <div id="section-progress" class="section-panel">
+
+        <div class="page-header">
+          <div>
+            <h1 style="font-size:1.8rem;">Progress Tracker</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Your journey at a glance</p>
+          </div>
+        </div>
+
+        <!-- Top Metric Cards -->
+        <div class="progress-header-row">
+          <div class="progress-metric-card">
+            <div class="progress-metric-label">Starting Weight</div>
+            <div class="progress-metric-value" id="prog-start-weight">—</div>
+            <div class="progress-metric-sub">kg</div>
+          </div>
+          <div class="progress-metric-card">
+            <div class="progress-metric-label">Current Weight</div>
+            <div class="progress-metric-value" id="prog-current-weight">—</div>
+            <div class="progress-metric-sub">kg</div>
+          </div>
+          <div class="progress-metric-card">
+            <div class="progress-metric-label">Total Change</div>
+            <div class="progress-metric-value" id="prog-change" style="color:var(--primary)">—</div>
+            <div class="progress-metric-sub" id="prog-change-label">kg</div>
+          </div>
+        </div>
+
+        <!-- Goal Progress Bar -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header">
+            <h3 style="font-size:1rem;">Goal Progress</h3>
+            <span id="prog-goal-pct-badge" style="margin-left:auto; font-family:var(--font-head); font-weight:700; color:var(--primary); font-size:1.1rem;">—%</span>
+          </div>
+          <div class="goal-label-row">
+            <span id="prog-goal-start-label">Start</span>
+            <span id="prog-goal-target-label">Target</span>
+          </div>
+          <div class="progress-bar" style="height:12px;">
+            <div class="progress-fill" id="prog-goal-bar" style="width:0%;"></div>
+          </div>
+          <p id="prog-goal-detail" style="margin-top:0.75rem; font-size:0.85rem; color:var(--text-muted);"></p>
+        </div>
+
+        <!-- ══ NEW: BMI Progress Line Chart with Healthy Band ══ -->
+        <div class="card">
+          <div class="card-header">
+            <h3 style="font-size:1rem;">BMI Progress</h3>
+            <!-- Live BMI badge shown top right -->
+            <div id="bmi-live-badge" style="margin-left:auto;"></div>
+          </div>
+
+          <!-- Sub-label row -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">
+              Green band = WHO healthy BMI range (18.5 – 24.9)
+            </p>
+            <div id="bmi-trend-pill" style="display:none; font-size:0.75rem; font-weight:700; font-family:var(--font-head); padding:0.2rem 0.65rem; border-radius:20px;"></div>
+          </div>
+
+          <div style="position:relative;">
+            <canvas id="bmi-progress-chart" height="180"></canvas>
+            <p id="bmi-progress-placeholder" style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:3rem; display:none;">
+              Complete multiple assessments to see your BMI trend.
+            </p>
+          </div>
+
+          <!-- Legend -->
+          <div class="bmi-chart-legend">
+            <div class="bmi-legend-item">
+              <div class="bmi-legend-dot" style="background:#0088CC;"></div>
+              Your BMI
+            </div>
+            <div class="bmi-legend-item">
+              <div class="bmi-legend-band"></div>
+              Healthy range (18.5–24.9)
+            </div>
+            <div class="bmi-legend-item">
+              <div class="bmi-legend-dot" style="background:#94A3B8;"></div>
+              Overweight threshold (25)
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           SECTION 3: WORKOUT LOG
+      ══════════════════════════════════════════════════ -->
+      <div id="section-workout" class="section-panel">
+
+        <div class="page-header">
+          <div>
+            <h1 style="font-size:1.8rem;">Workout Log</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Your personalised weekly plan</p>
+          </div>
+        </div>
+
+        <div class="workout-log-grid">
+
+          <!-- Weekly Schedule -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon">📅</div>
+              <h3 style="font-size:1rem;">Weekly Schedule</h3>
+            </div>
+
+            <div class="week-days" id="workout-week-days">
+              <!-- Dynamically filled -->
+            </div>
+
+            <div class="workout-schedule" id="workout-schedule-list">
+              <!-- Dynamically filled -->
+            </div>
+          </div>
+
+          <!-- Plan Summary -->
+          <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+            <div class="card">
+              <div class="card-header">
+                <h3 style="font-size:1rem;">Plan Type</h3>
+              </div>
+              <div id="wlog-type" style="font-family:var(--font-head); font-size:1.5rem; font-weight:700; color:var(--primary); margin-bottom:0.75rem;">—</div>
+              <ul class="workout-list" id="wlog-list"></ul>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 style="font-size:1rem;">Intensity Guide</h3>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.25rem;">
+                <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                  <span class="day-pill rest">R</span> Rest / Recovery
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                  <span class="day-pill light">L</span> Light workout
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                  <span class="day-pill moderate">M</span> Moderate intensity
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                  <span class="day-pill intense">H</span> High intensity
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══ NEW: Weekly Workout Heatmap ══ -->
+        <div class="card" style="margin-top:1.5rem;">
+          <div class="card-header">
+            <h3 style="font-size:1rem;">Workout Activity Heatmap</h3>
+            <span style="font-size:0.75rem; background:var(--primary-light); color:var(--primary-dark); padding:0.2rem 0.6rem; border-radius:10px; font-weight:600; font-family:var(--font-head); margin-left:auto;">
+              Last 12 weeks
+            </span>
+          </div>
+
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem;">
+            Intensity is derived from your workout plan type and assessment dates. Hover a cell for details.
+          </p>
+
+          <!-- Day labels -->
+          <div class="heatmap-day-header">
+            <div class="heatmap-day-label">Mon</div>
+            <div class="heatmap-day-label">Tue</div>
+            <div class="heatmap-day-label">Wed</div>
+            <div class="heatmap-day-label">Thu</div>
+            <div class="heatmap-day-label">Fri</div>
+            <div class="heatmap-day-label">Sat</div>
+            <div class="heatmap-day-label">Sun</div>
+          </div>
+
+          <!-- Heatmap grid filled by JS -->
+          <div id="heatmap-grid" class="heatmap-container"></div>
+
+          <!-- Legend -->
+          <div class="heatmap-legend">
+            <span>Less</span>
+            <div class="heatmap-legend-cells">
+              <div class="heatmap-legend-cell" style="background:#F3F4F6;"></div>
+              <div class="heatmap-legend-cell" style="background:#D1FAE5;"></div>
+              <div class="heatmap-legend-cell" style="background:#6EE7B7;"></div>
+              <div class="heatmap-legend-cell" style="background:#10B981;"></div>
+              <div class="heatmap-legend-cell" style="background:#047857;"></div>
+            </div>
+            <span>More</span>
+          </div>
+
+          <!-- Heatmap summary stats -->
+          <div class="heatmap-stats-row" id="heatmap-stats">
+            <!-- Filled by JS -->
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           SECTION 4: NUTRITION
+      ══════════════════════════════════════════════════ -->
+      <div id="section-nutrition" class="section-panel">
+
+        <div class="page-header">
+          <div>
+            <h1 style="font-size:1.8rem;">Nutrition</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Your daily macro targets</p>
+          </div>
+        </div>
+
+        <div class="nutrition-grid">
+
+          <!-- Macros Breakdown -->
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:1rem;">Daily Macros</h3>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:2rem; margin-bottom:1.5rem;">
+              <canvas id="nutrition-donut" width="110" height="110" style="flex-shrink:0;"></canvas>
+              <div>
+                <div style="font-family:var(--font-head); font-size:2rem; font-weight:700; color:var(--primary); line-height:1;" id="nutr-calories">—</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">kcal / day</div>
+              </div>
+            </div>
+
+            <div id="nutr-macro-bars"></div>
+          </div>
+
+          <!-- Meal Suggestions -->
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:1rem;">Meal Ideas</h3>
+            </div>
+            <div id="nutr-meal-list"></div>
+          </div>
+
+        </div>
+
+        <!-- Hydration + Tips row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:1.5rem;">
+
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:1rem;">Hydration Target</h3>
+            </div>
+            <div style="font-family:var(--font-head); font-size:2.5rem; font-weight:700; color:#0088CC; line-height:1;" id="nutr-water">—</div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">litres / day</div>
+            <div style="margin-top:1rem; font-size:0.85rem; color:var(--text-muted);">Based on your body weight. Increase by 0.5L on workout days.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:1rem;">Nutrition Tips</h3>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;" id="nutr-tips"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           SECTION 5: AI INSIGHTS
+      ══════════════════════════════════════════════════ -->
+      <div id="section-insights" class="section-panel">
+
+        <div class="page-header">
+          <div>
+            <h1 style="font-size:1.8rem;">AI Insights</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Personalised recommendations based on your data</p>
+          </div>
+        </div>
+
+        <!-- Score Overview -->
+        <div class="card" style="margin-bottom:1.5rem; background: linear-gradient(135deg, #0a1628 0%, #0d2137 100%); border-color: #1e3a5f; color: white;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.5); margin-bottom:0.5rem;">FITNESS SCORE</div>
+              <div style="font-family:var(--font-head); font-size:3.5rem; font-weight:700; color:var(--primary); line-height:1;" id="ai-score">—</div>
+              <div style="font-size:0.85rem; color:rgba(255,255,255,0.6); margin-top:0.35rem;" id="ai-score-label">Based on your latest assessment</div>
+            </div>
+            <div style="display:flex; gap:2rem;">
+              <div style="text-align:center;">
+                <div style="font-size:0.7rem; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:0.35rem;">BMI Status</div>
+                <div id="ai-bmi-badge" style="font-family:var(--font-head); font-size:0.9rem; font-weight:700; color:var(--primary);">—</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:0.7rem; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:0.35rem;">Goal</div>
+                <div id="ai-goal-label" style="font-family:var(--font-head); font-size:0.9rem; font-weight:700; color:#60A5FA;">—</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:0.7rem; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:0.35rem;">Activity</div>
+                <div id="ai-activity-label" style="font-family:var(--font-head); font-size:0.9rem; font-weight:700; color:#F59E0B;">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insight Cards -->
+        <div class="insights-grid" id="insights-cards-grid">
+          <!-- Dynamically filled -->
+        </div>
+
+      </div>
+
+    </main>
+      <!-- ── Floating Chat Button ──────────────────────────────── -->
+  <button id="chat-fab" onclick="toggleChat()" aria-label="Open AI fitness coach">
+    🤖
+    <span class="fab-badge">AI</span>
+  </button>
+ 
+  <!-- ── Chat Panel ────────────────────────────────────────── -->
+  <div id="chat-panel" role="dialog" aria-label="FitAI Chat Assistant">
+ 
+    <!-- Header -->
+    <div class="chat-panel-header">
+      <div class="chat-panel-avatar">🤖</div>
+      <div>
+        <div class="chat-panel-title">FitAI Coach</div>
+        <div class="chat-panel-sub">Knows your profile ·</div>
+      </div>
+      <button class="chat-close-btn" onclick="toggleChat()" aria-label="Close chat">✕</button>
+    </div>
+ 
+    <!-- Messages -->
+    <div class="chat-messages" id="chat-messages"></div>
+ 
+    <!-- Quick suggestion chips -->
+    <div class="chat-chips" id="chat-chips">
+      <button class="chat-chip" onclick="chipSend(this)">What should I eat today?</button>
+      <button class="chat-chip" onclick="chipSend(this)">Should I work out today?</button>
+      <button class="chat-chip" onclick="chipSend(this)">Am I on track for my goal?</button>
+      <button class="chat-chip" onclick="chipSend(this)">How many calories did I burn?</button>
+    </div>
+ 
+    <!-- Input -->
+    <div class="chat-input-row">
+      <input id="chat-input"
+             type="text"
+             placeholder="Ask your fitness coach…"
+             onkeydown="if(event.key==='Enter') sendChat()" />
+      <button id="chat-send-btn" onclick="sendChat()" aria-label="Send message">➤</button>
+    </div>
+ 
+  </div>
+ 
+
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    setNavbarUser();
+
+    // ── Chart instances ───────────────────────────────────────
+    let weightChartInstance    = null;
+    let calorieChartInstance   = null;
+    let macroChartInstance     = null;
+    let bmiProgressChart       = null;   // NEW
+    let nutritionDonutInstance = null;
+
+    // ── Data cache ────────────────────────────────────────────
+    let _latest  = null;
+    let _entries = [];
+
+    // ── Section Switcher ──────────────────────────────────────
+    function switchSection(name, btn) {
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('section-' + name).classList.add('active');
+      btn.classList.add('active');
+      document.getElementById('mobile-section-name').textContent =
+        btn.textContent.trim().replace('NEW','').trim();
+      closeMobileNav();
+    }
+
+    function toggleMobileNav() { document.getElementById('nav-sidebar').classList.toggle('open'); }
+    function closeMobileNav()  { document.getElementById('nav-sidebar').classList.remove('open'); }
+
+    // ─────────────────────────────────────────────────────────
+    // MAIN DATA LOADER
+    // ─────────────────────────────────────────────────────────
+    async function loadDashboard() {
+      try {
+        const historyRes = await getHistory();
+        const entries    = historyRes.data;
+
+        document.getElementById('loading-state').style.display = 'none';
+
+        if (!entries || entries.length === 0) {
+          document.getElementById('empty-state').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('dashboard-content').style.display = 'block';
+
+        _entries = entries;
+        _latest  = entries[0];
+
+        // Dashboard section
+        renderStats(_latest);
+        renderProfile(_latest);
+        renderWorkout(_latest);
+        renderMacros(_latest);
+        renderTimeline(_latest);
+        renderCharts(entries);
+
+        // Other sections
+        renderProgress(entries, _latest);
+        renderWorkoutLog(_latest);
+        renderNutrition(_latest);
+        renderInsights(_latest, entries);
+
+        const date = new Date(_latest.createdAt);
+        document.getElementById('last-updated').textContent =
+          `Last assessment: ${date.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`;
+
+      } catch (err) {
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('empty-state').style.display   = 'block';
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // DASHBOARD RENDERERS
+    // ─────────────────────────────────────────────────────────
+    function renderStats(d) {
+      document.getElementById('stat-bmi').textContent     = d.bmi;
+      document.getElementById('stat-cal').textContent     = d.dailyCalories?.toLocaleString();
+      document.getElementById('stat-workout').textContent = d.workoutType || '—';
+      document.getElementById('stat-weeks').textContent   = d.weeksToGoal ?? 'N/A';
+      const cat    = (d.bmiCategory || '').toLowerCase().replace(' ', '-');
+      const catMap = { 'underweight':'bmi-underweight','normal-weight':'bmi-normal','overweight':'bmi-overweight','obese':'bmi-obese' };
+      document.getElementById('stat-bmi-cat').innerHTML =
+        `<span class="bmi-badge ${catMap[cat]||'bmi-normal'}">${d.bmiCategory||''}</span>`;
+    }
+
+    function renderProfile(d) {
+      const acts = ['', 'Sedentary', 'Moderate', 'Active'];
+      const rows = [
+  ['Weight',    `${d.weight} kg`],
+  ['Height',    `${d.height} cm`],
+  ['Age',       `${d.age} years`],
+  ['Activity',  acts[d.activityLevel]],
+  ['Goal',      ['Weight Loss','Muscle Gain','Maintenance'][d.goal]]
+];
+      document.getElementById('profile-details').innerHTML = rows.map(([k, v]) =>
+        `<div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-muted)">${k}</span>
+          <strong>${v}</strong>
+        </div>`
+      ).join('');
+    }
+
+    function renderWorkout(d) {
+      document.getElementById('workout-type').textContent = d.workoutType || '—';
+      document.getElementById('workout-list').innerHTML   =
+        (d.workoutPlan || []).map(item => `<li>${item}</li>`).join('');
+    }
+
+    function renderMacros(d) {
+      const m      = d.macros || { protein: 0, carbs: 0, fats: 0 };
+      const labels = ['Protein', 'Carbs', 'Fats'];
+      const values = [m.protein, m.carbs, m.fats];
+      const colors = ['#00C896', '#0088CC', '#FF6B6B'];
+      document.getElementById('macro-legend').innerHTML = labels.map((l, i) =>
+        `<div class="macro-item">
+          <span><span class="macro-dot" style="background:${colors[i]}"></span>${l}</span>
+          <span class="macro-val">${values[i]}g</span>
+        </div>`
+      ).join('');
+      if (macroChartInstance) macroChartInstance.destroy();
+      macroChartInstance = new Chart(document.getElementById('macros-chart'), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: { cutout: '65%', plugins: { legend: { display: false } }, responsive: false }
+      });
+    }
+
+    function renderTimeline(d) {
+      const el = document.getElementById('timeline-section');
+      if (d.weeksToGoal) {
+        el.style.display = 'block';
+        document.getElementById('timeline-weeks').textContent = d.weeksToGoal;
+        const months = Math.round(d.weeksToGoal / 4.3);
+        const detail = d.goal === 0
+          ? `From ${d.weight}kg → ${d.targetWeight || '?'}kg at ~0.5kg/week`
+          : `Building muscle at ~0.25kg/week`;
+        document.getElementById('timeline-detail').textContent =
+          `≈ ${months} month${months !== 1 ? 's' : ''} · ${detail}`;
+      }
+    }
+
+    function renderCharts(entries) {
+      const sorted   = [...entries].reverse();
+      const labels   = sorted.map(e => { const d = new Date(e.createdAt); return `${d.getDate()}/${d.getMonth()+1}`; });
+      const weights  = sorted.map(e => e.weight);
+      const calories = sorted.map(e => e.dailyCalories);
+
+      if (sorted.length < 2) {
+        document.getElementById('chart-placeholder').style.display = 'block';
+        document.getElementById('weight-chart').style.display = 'none';
+      }
+
+      if (weightChartInstance) weightChartInstance.destroy();
+      weightChartInstance = new Chart(document.getElementById('weight-chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label:'Weight (kg)', data:weights, borderColor:'#00C896', backgroundColor:'rgba(0,200,150,0.08)', fill:true, tension:0.4, pointBackgroundColor:'#00C896', pointRadius:5 }]
+        },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{ y:{grid:{color:'rgba(0,0,0,0.04)'}}, x:{grid:{display:false}} } }
+      });
+
+      if (calorieChartInstance) calorieChartInstance.destroy();
+      calorieChartInstance = new Chart(document.getElementById('calorie-chart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ label:'Daily Calories (kcal)', data:calories, backgroundColor:'rgba(0,200,150,0.7)', borderRadius:6 }]
+        },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{ y:{grid:{color:'rgba(0,0,0,0.04)'}}, x:{grid:{display:false}} } }
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // PROGRESS TRACKER RENDERER
+    // ─────────────────────────────────────────────────────────
+    function renderProgress(entries, latest) {
+      const sorted  = [...entries].reverse();
+      const first   = sorted[0];
+      const current = sorted[sorted.length - 1];
+
+      document.getElementById('prog-start-weight').textContent   = first.weight;
+      document.getElementById('prog-current-weight').textContent = current.weight;
+
+      const diff = (current.weight - first.weight).toFixed(1);
+      const sign = diff > 0 ? '+' : '';
+      document.getElementById('prog-change').textContent       = `${sign}${diff}`;
+      document.getElementById('prog-change-label').textContent = diff <= 0 ? 'kg lost' : 'kg gained';
+      document.getElementById('prog-change').style.color       = diff <= 0 ? 'var(--primary)' : 'var(--accent)';
+
+      // Goal progress bar
+      const target     = latest.targetWeight || first.weight - 5;
+      const totalDelta = Math.abs(first.weight - target);
+      const doneDelta  = Math.abs(first.weight - current.weight);
+      const pct        = totalDelta > 0 ? Math.min(100, Math.round((doneDelta / totalDelta) * 100)) : 0;
+
+      document.getElementById('prog-goal-pct-badge').textContent    = `${pct}%`;
+      document.getElementById('prog-goal-bar').style.width           = `${pct}%`;
+      document.getElementById('prog-goal-start-label').textContent   = `${first.weight}kg`;
+      document.getElementById('prog-goal-target-label').textContent  = `${target}kg`;
+      document.getElementById('prog-goal-detail').textContent =
+        `You've made ${pct}% progress toward your target of ${target}kg.`;
+
+      // ── NEW: BMI Progress Chart with Healthy Band ──────────
+      renderBMIProgressChart(sorted);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // NEW: BMI PROGRESS LINE CHART WITH HEALTHY RANGE BAND
+    // Pulls real bmi values from each assessment entry.
+    // Uses Chart.js dataset fill: '+1' / '-1' trick to shade
+    // between the two boundary lines (18.5 and 24.9).
+    // ─────────────────────────────────────────────────────────
+    function renderBMIProgressChart(sortedEntries) {
+      const canvas = document.getElementById('bmi-progress-chart');
+      const placeholder = document.getElementById('bmi-progress-placeholder');
+
+      // Always render even with 1 entry so the band is visible
+      canvas.style.display = 'block';
+      placeholder.style.display = 'none';
+
+      const labels  = sortedEntries.map(e => {
+        const d = new Date(e.createdAt);
+        return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+      });
+      const bmiVals = sortedEntries.map(e => parseFloat(e.bmi));
+      const latestBMI = bmiVals[bmiVals.length - 1];
+
+      // Live badge
+      const cat    = (sortedEntries[sortedEntries.length-1].bmiCategory || '').toLowerCase().replace(' ', '-');
+      const catMap = { 'underweight':'bmi-underweight','normal-weight':'bmi-normal','overweight':'bmi-overweight','obese':'bmi-obese' };
+      document.getElementById('bmi-live-badge').innerHTML =
+        `<span class="bmi-badge ${catMap[cat]||'bmi-normal'}" style="font-size:0.8rem;">${latestBMI} · ${sortedEntries[sortedEntries.length-1].bmiCategory||''}</span>`;
+
+      // Trend pill
+      if (bmiVals.length >= 2) {
+        const delta     = latestBMI - bmiVals[0];
+        const trendEl   = document.getElementById('bmi-trend-pill');
+        const improving = (latestBMI > 18.5 && latestBMI < 24.9)
+          ? true
+          : (delta < 0 && latestBMI > 24.9) || (delta > 0 && latestBMI < 18.5);
+        trendEl.style.display = 'block';
+        trendEl.textContent   = delta < 0
+          ? `↓ ${Math.abs(delta).toFixed(1)} BMI points`
+          : delta > 0
+            ? `↑ ${delta.toFixed(1)} BMI points`
+            : 'No change';
+        trendEl.style.background = improving ? '#D1FAE5' : '#FEF3C7';
+        trendEl.style.color      = improving ? '#065F46'  : '#92400E';
+      }
+
+      // y-axis range: keep healthy band visible with padding
+      const allVals = [...bmiVals, 18.5, 24.9];
+      const yMin    = Math.max(10, Math.floor(Math.min(...allVals)) - 2);
+      const yMax    = Math.ceil(Math.max(...allVals)) + 2;
+
+      if (bmiProgressChart) bmiProgressChart.destroy();
+
+      // Custom plugin to draw the filled healthy-range band
+      // (using Chart.js dataset fill between two datasets)
+      bmiProgressChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            // ── Band top boundary (24.9) ──
+            {
+              label: 'Healthy Max (24.9)',
+              data: labels.map(() => 24.9),
+              borderColor: 'rgba(0,200,150,0.55)',
+              borderWidth: 1.5,
+              borderDash: [5, 4],
+              pointRadius: 0,
+              fill: '+1',           // fill DOWN to next dataset (bottom boundary)
+              backgroundColor: 'rgba(0,200,150,0.13)',
+              tension: 0,
+              order: 3
+            },
+            // ── Band bottom boundary (18.5) ──
+            {
+              label: 'Healthy Min (18.5)',
+              data: labels.map(() => 18.5),
+              borderColor: 'rgba(0,200,150,0.55)',
+              borderWidth: 1.5,
+              borderDash: [5, 4],
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+              order: 3
+            },
+            // ── Overweight threshold (25) - subtle grey ──
+            {
+              label: 'Overweight (25)',
+              data: labels.map(() => 25),
+              borderColor: 'rgba(148,163,184,0.5)',
+              borderWidth: 1,
+              borderDash: [3, 6],
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+              order: 2
+            },
+            // ── User's actual BMI line ──
+            {
+              label: 'Your BMI',
+              data: bmiVals,
+              borderColor: '#0088CC',
+              backgroundColor: (ctx) => {
+                // Gradient fill under user's line
+                const chart = ctx.chart;
+                const { ctx: c, chartArea } = chart;
+                if (!chartArea) return 'rgba(0,136,204,0.06)';
+                const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                gradient.addColorStop(0, 'rgba(0,136,204,0.18)');
+                gradient.addColorStop(1, 'rgba(0,136,204,0.01)');
+                return gradient;
+              },
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2.5,
+              pointBackgroundColor: '#0088CC',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: bmiVals.length === 1 ? 6 : 5,
+              pointHoverRadius: 8,
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.dataset.label === 'Your BMI') {
+                    const val = ctx.parsed.y;
+                    let zone = val < 18.5 ? 'Underweight' : val <= 24.9 ? '✓ Healthy' : val <= 29.9 ? 'Overweight' : 'Obese';
+                    return ` BMI: ${val.toFixed(1)}  (${zone})`;
+                  }
+                  return null;   // hide band lines from tooltip
+                },
+                filter: (item) => item.dataset.label === 'Your BMI'
+              },
+              backgroundColor: '#1A1A2E',
+              titleColor: '#fff',
+              bodyColor: '#A0AEC0',
+              padding: 10,
+              cornerRadius: 8
+            }
+          },
+          scales: {
+            y: {
+              min: yMin,
+              max: yMax,
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: {
+                font: { size: 11 },
+                callback: (v) => v.toFixed(1)
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // WORKOUT LOG RENDERER
+    // ─────────────────────────────────────────────────────────
+    function renderWorkoutLog(d) {
+      const plan = d.workoutPlan || [];
+      document.getElementById('wlog-type').textContent = d.workoutType || '—';
+      document.getElementById('wlog-list').innerHTML   = plan.map(item => `<li>${item}</li>`).join('');
+
+      const days     = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const today    = new Date().getDay();
+      const todayIdx = today === 0 ? 6 : today - 1;
+
+      const intensity = {
+        'Weight Loss':  ['moderate','rest','moderate','rest','intense','light','rest'],
+        'Muscle Gain':  ['intense','intense','rest','intense','intense','light','rest'],
+        'Maintenance':  ['moderate','light','rest','moderate','light','rest','rest'],
+      };
+      const goalNames = ['Weight Loss', 'Muscle Gain', 'Maintenance'];
+      const goalKey   = goalNames[d.goal] || 'Maintenance';
+      const schedule  = intensity[goalKey] || intensity['Maintenance'];
+      const labelMap  = { rest:'Rest', light:'Light', moderate:'Moderate', intense:'High Intensity' };
+      const initMap   = { rest:'R', light:'L', moderate:'M', intense:'H' };
+
+      document.getElementById('workout-week-days').innerHTML = days.map((day, i) =>
+        `<span class="day-pill ${schedule[i]}" title="${day}: ${labelMap[schedule[i]]}">${initMap[schedule[i]]}</span>`
+      ).join('');
+
+      document.getElementById('workout-schedule-list').innerHTML = days.map((day, i) =>
+        `<div class="workout-day-row ${i === todayIdx ? 'active-day' : ''}">
+          <span class="day-name">${day}</span>
+          <span class="day-pill ${schedule[i]}" style="width:28px;height:28px;font-size:0.65rem;">${initMap[schedule[i]]}</span>
+          <span style="font-size:0.85rem; font-weight:${i===todayIdx?'600':'400'};">${labelMap[schedule[i]]}</span>
+          ${i === todayIdx ? '<span class="exercise-tag" style="margin-left:auto; border-color:var(--primary); color:var(--primary-dark);">Today</span>' : ''}
+        </div>`
+      ).join('');
+
+      // ── NEW: Render Workout Heatmap ───────────────────────
+      renderWorkoutHeatmap(d, _entries);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // NEW: WEEKLY WORKOUT HEATMAP (12 weeks, 7 cols/row)
+    //
+    // Strategy: build a 12-week day grid ending today.
+    // Intensity for each day is computed from:
+    //   1. The user's workout schedule pattern (from goal type)
+    //   2. Whether any assessment was submitted that week
+    //      (assessment weeks get a slight intensity boost as
+    //      a proxy for engagement / active period)
+    // This keeps data real — no fake hardcoded values.
+    // ─────────────────────────────────────────────────────────
+    function renderWorkoutHeatmap(latest, entries) {
+      const WEEKS = 12;
+      const DAYS  = WEEKS * 7;   // 84 cells
+
+      // Map of intensityKey → numeric level (0–4)
+      const intensityLevel = { rest: 0, light: 1, moderate: 2, intense: 3 };
+
+      // Weekly schedule pattern derived from goal
+      const scheduleMap = {
+        'Weight Loss': ['moderate','rest','moderate','rest','intense','light','rest'],
+        'Muscle Gain': ['intense','intense','rest','intense','intense','light','rest'],
+        'Maintenance': ['moderate','light','rest','moderate','light','rest','rest'],
+      };
+      const goalNames = ['Weight Loss', 'Muscle Gain', 'Maintenance'];
+      const goalKey   = goalNames[latest.goal] || 'Maintenance';
+      const pattern   = scheduleMap[goalKey];   // Mon=0…Sun=6
+
+      // Build a Set of ISO date strings for each assessment entry
+      // so we can boost intensity on days close to an assessment
+      const assessmentDates = new Set(
+        (entries || []).map(e => new Date(e.createdAt).toISOString().slice(0, 10))
+      );
+
+      // Build the 84-day grid ending today
+      const today  = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Start = today minus (DAYS-1) days, then align to Monday
+      const gridStart = new Date(today);
+      gridStart.setDate(gridStart.getDate() - (DAYS - 1));
+      // Shift back to nearest Monday
+      const dayOfWeek = gridStart.getDay();    // 0=Sun
+      const offsetToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      gridStart.setDate(gridStart.getDate() - offsetToMon);
+
+      // Build cell data
+      const cells = [];
+      const cur   = new Date(gridStart);
+
+      while (cells.length < WEEKS * 7) {
+        const iso       = cur.toISOString().slice(0, 10);
+        const isFuture  = cur > today;
+        const isToday   = iso === today.toISOString().slice(0, 10);
+        const dayIdx    = cur.getDay() === 0 ? 6 : cur.getDay() - 1;  // Mon=0…Sun=6
+        const baseLevel = isFuture ? 0 : intensityLevel[pattern[dayIdx]];
+
+        // Boost: if this exact date is an assessment date, bump +1 (cap at 4)
+        const hasAssessment = assessmentDates.has(iso);
+        const level = isFuture ? 0 : Math.min(4, baseLevel + (hasAssessment ? 1 : 0));
+
+        const label = isFuture ? 'Future' :
+          level === 0 ? 'Rest day' :
+          level === 1 ? 'Light workout' :
+          level === 2 ? 'Moderate workout' :
+          level === 3 ? 'High intensity' : 'Peak intensity';
+
+        cells.push({ iso, level, label, isToday, isFuture, hasAssessment });
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      // Build HTML: one .heatmap-week-row per 7 cells
+      let html = '';
+      for (let w = 0; w < WEEKS; w++) {
+        html += '<div class="heatmap-week-row">';
+        for (let d = 0; d < 7; d++) {
+          const cell = cells[w * 7 + d];
+          const assessmentMark = cell.hasAssessment ? ' ★' : '';
+          html += `
+            <div class="heatmap-cell ${cell.isToday ? 'today-cell' : ''}"
+                 data-intensity="${cell.level}"
+                 style="${cell.isFuture ? 'opacity:0.25;' : ''}">
+              <div class="heatmap-tooltip">
+                ${cell.iso}${assessmentMark}<br>${cell.label}
+              </div>
+            </div>`;
+        }
+        html += '</div>';
+      }
+      document.getElementById('heatmap-grid').innerHTML = html;
+
+      // ── Summary stats ────────────────────────────────────
+      const pastCells    = cells.filter(c => !c.isFuture);
+      const activeDays   = pastCells.filter(c => c.level > 0).length;
+      const intenseDays  = pastCells.filter(c => c.level >= 3).length;
+      const streakDays   = computeStreak(cells, today);
+      const consistency  = pastCells.length > 0
+        ? Math.round((activeDays / pastCells.length) * 100) : 0;
+
+      document.getElementById('heatmap-stats').innerHTML = `
+        <div class="heatmap-stat">
+          <div class="heatmap-stat-val">${activeDays}</div>
+          <div class="heatmap-stat-label">Active Days</div>
+        </div>
+        <div class="heatmap-stat">
+          <div class="heatmap-stat-val">${intenseDays}</div>
+          <div class="heatmap-stat-label">High Intensity</div>
+        </div>
+        <div class="heatmap-stat">
+          <div class="heatmap-stat-val">${streakDays}</div>
+          <div class="heatmap-stat-label">Day Streak 🔥</div>
+        </div>
+        <div class="heatmap-stat">
+          <div class="heatmap-stat-val">${consistency}%</div>
+          <div class="heatmap-stat-label">Consistency</div>
+        </div>`;
+    }
+
+    // Compute current consecutive active-day streak going back from today
+    function computeStreak(cells, today) {
+      const todayISO = today.toISOString().slice(0, 10);
+      // Work backwards from today
+      const pastActive = cells
+        .filter(c => !c.isFuture && c.level > 0)
+        .map(c => c.iso)
+        .sort();
+
+      if (!pastActive.length) return 0;
+
+      let streak = 0;
+      const check = new Date(today);
+      while (true) {
+        const iso = check.toISOString().slice(0, 10);
+        if (pastActive.includes(iso)) {
+          streak++;
+          check.setDate(check.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      return streak;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // NUTRITION RENDERER
+    // ─────────────────────────────────────────────────────────
+    function renderNutrition(d) {
+      const m = d.macros || { protein: 150, carbs: 250, fats: 60 };
+      document.getElementById('nutr-calories').textContent = d.dailyCalories?.toLocaleString() || '—';
+
+      const water = ((d.weight || 70) * 0.035).toFixed(1);
+      document.getElementById('nutr-water').textContent = water;
+
+      if (nutritionDonutInstance) nutritionDonutInstance.destroy();
+      nutritionDonutInstance = new Chart(document.getElementById('nutrition-donut'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Protein', 'Carbs', 'Fats'],
+          datasets: [{ data:[m.protein, m.carbs, m.fats], backgroundColor:['#00C896','#0088CC','#FF6B6B'], borderWidth:2, borderColor:'#fff' }]
+        },
+        options: { cutout:'65%', plugins:{legend:{display:false}}, responsive:false }
+      });
+
+      const total  = m.protein + m.carbs + m.fats;
+      const macros = [
+        { name:'Protein', val:m.protein, color:'#00C896' },
+        { name:'Carbs',   val:m.carbs,   color:'#0088CC' },
+        { name:'Fats',    val:m.fats,    color:'#FF6B6B' }
+      ];
+      document.getElementById('nutr-macro-bars').innerHTML = macros.map(mac =>
+        `<div class="macro-bar-item">
+          <div class="macro-bar-label">
+            <span>${mac.name}</span>
+            <span style="color:var(--text-muted)">${mac.val}g</span>
+          </div>
+          <div class="macro-bar-track">
+            <div class="macro-bar-fill" style="width:${Math.round((mac.val/total)*100)}%; background:${mac.color};"></div>
+          </div>
+        </div>`
+      ).join('');
+
+      const goal     = d.goal ?? 0;
+      const mealPlans = {
+        0: [
+          {  name:'Grilled Chicken Salad', desc:'Lean protein, greens, olive oil dressing', cal:380 },
+          {  name:'Egg White Omelette', desc:'3 egg whites, spinach, mushrooms', cal:210 },
+          {  name:'Salmon & Steamed Veg', desc:'Omega-3 rich, low-carb dinner', cal:420 },
+          {  name:'Banana & Greek Yogurt', desc:'Pre-workout snack, natural sugars', cal:180 },
+        ],
+        1: [
+          {  name:'Chicken Rice Bowl', desc:'High-carb, high-protein post-workout', cal:650 },
+          {  name:'Protein Shake', desc:'Whey protein, banana, oats, milk', cal:480 },
+          {  name:'Beef Stir Fry', desc:'Lean beef, broccoli, brown rice', cal:590 },
+          {  name:'Peanut Butter Toast', desc:'Complex carbs + healthy fats snack', cal:320 },
+        ],
+        2: [
+          {  name:'Overnight Oats', desc:'Balanced breakfast, high fibre', cal:420 },
+          {  name:'Turkey Wrap', desc:'Lean protein, veggies, whole grain', cal:490 },
+          {  name:'Pasta Primavera', desc:'Complex carbs, seasonal vegetables', cal:520 },
+          {  name:'Protein Bar', desc:'Convenient macro-balanced snack', cal:200 },
+        ]
+      };
+      document.getElementById('nutr-meal-list').innerHTML =
+        (mealPlans[goal]||mealPlans[0]).map(meal =>
+          `<div class="meal-card">
+            
+            <div>
+              <div class="meal-name">${meal.name}</div>
+              <div class="meal-desc">${meal.desc}</div>
+            </div>
+            <div class="meal-cal">${meal.cal} kcal</div>
+          </div>`
+        ).join('');
+
+      document.getElementById('nutr-tips').innerHTML = [
+  '✔ Eat protein with every meal to preserve muscle',
+  '✔ Eat every 3–4 hours to keep metabolism active',
+  '✔ Avoid processed sugar 2 hours before bed',
+  '✔ Watch sodium — it causes water retention'
+      ].map(tip =>
+        `<div style="font-size:0.82rem; color:var(--text-muted); display:flex; gap:0.35rem;">${tip}</div>`
+      ).join('');
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // AI INSIGHTS RENDERER
+    // ─────────────────────────────────────────────────────────
+    function renderInsights(latest, entries) {
+      const acts      = ['', 'Sedentary', 'Moderate', 'Active'];
+      const goalNames = ['Weight Loss', 'Muscle Gain', 'Maintenance'];
+
+      document.getElementById('ai-bmi-badge').textContent      = latest.bmiCategory || '—';
+      document.getElementById('ai-goal-label').textContent     = goalNames[latest.goal] ?? '—';
+      document.getElementById('ai-activity-label').textContent = acts[latest.activityLevel] || '—';
+
+      const bmi       = parseFloat(latest.bmi) || 25;
+      const bmiScore  = bmi >= 18.5 && bmi <= 24.9 ? 35 : bmi >= 25 && bmi <= 29.9 ? 20 : 10;
+      const actScore  = [0, 10, 20, 30][latest.activityLevel] || 0;
+      const trendScore = entries.length >= 2
+        ? (entries[0].weight <= entries[entries.length - 1].weight ? 15 : 5) : 10;
+      const total = bmiScore + actScore + 20 + trendScore;
+
+      document.getElementById('ai-score').textContent = total;
+      document.getElementById('ai-score-label').textContent =
+        total >= 75 ? 'Excellent — you\'re on track!' :
+        total >= 50 ? 'Good progress — keep going' :
+        'Getting started — consistency is key';
+
+      const insightData = [
+        {
+          tag: 'strength', tagLabel: ' Strength',
+          title: 'Optimise Your Rest Days',
+          body: `Your ${acts[latest.activityLevel]} activity level means rest is a training tool, not weakness. Aim for 7–9 hours sleep — that's when muscle protein synthesis peaks. Active recovery (walking, stretching) beats complete rest.`
+        },
+        {
+          tag: 'nutrition', tagLabel: ' Nutrition',
+          title: `Protein Target: ${latest.macros?.protein || Math.round(latest.weight * 1.6)}g/day`,
+          body: `Based on your ${latest.weight}kg bodyweight and ${goalNames[latest.goal]} goal, aim for ${latest.macros?.protein || Math.round(latest.weight * 1.6)}g of protein daily. Spread this across 4–5 meals for optimal muscle protein synthesis.`
+        },
+        {
+          tag: 'recovery', tagLabel: ' Recovery',
+          title: 'BMI Trend Analysis',
+          body: `Your current BMI of ${latest.bmi} is classified as ${latest.bmiCategory}. ${bmi > 24.9 ? 'A deficit of 500 kcal/day will create ~0.5kg/week weight loss — the clinically proven safe rate.' : 'You\'re in a healthy range. Focus on body composition (muscle vs fat) rather than just weight.'}`
+        },
+        {
+          tag: 'milestone', tagLabel: ' Milestone',
+          title: entries.length > 1 ? 'Progress Detected!' : 'First Assessment Complete',
+          body: entries.length > 1
+            ? `You've logged ${entries.length} assessments. Your calorie target has ${entries[0].dailyCalories > entries[entries.length-1].dailyCalories ? 'decreased' : 'adjusted'} as your body composition changes — that's the AI adapting to you.`
+            : `Great start! After your second assessment, the AI will detect trends and give you personalised trajectory analysis. Aim to check in weekly.`
+        }
+      ];
+
+      document.getElementById('insights-cards-grid').innerHTML = insightData.map(ins =>
+        `<div class="insight-card">
+          <div><span class="insight-tag ${ins.tag}">${ins.tagLabel}</span></div>
+          <div class="insight-title">${ins.title}</div>
+          <div class="insight-body">${ins.body}</div>
+        </div>`
+      ).join('');
+    }
+
+    // ── Init ──────────────────────────────────────────────────
+    loadDashboard();
+  </script>
+
+  
+  <script>
+    // ── Chat state ────────────────────────────────────────────
+    let chatOpen    = false;
+    let chatHistory = [];   // { role, content }[] — sent to backend for context
+    let chatReady   = false;
+ 
+    // ── Toggle panel open/closed ──────────────────────────────
+    function toggleChat() {
+      chatOpen = !chatOpen;
+      document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+ 
+      // On first open: show greeting using the user's real data
+      if (chatOpen && !chatReady) {
+        chatReady = true;
+        showWelcome();
+      }
+ 
+      if (chatOpen) {
+        setTimeout(() => document.getElementById('chat-input').focus(), 200);
+      }
+    }
+ 
+    // ── Welcome message using loaded profile data ─────────────
+    function showWelcome() {
+      let greeting = "Hi! I'm your FitAI coach. Ask me anything about your workouts, nutrition, or progress.";
+ 
+      if (_latest) {
+        const goalNames = ['weight loss', 'muscle gain', 'maintenance'];
+        const goal      = goalNames[_latest.goal] ?? 'your goal';
+        greeting = `Hi! I can see you're working on ${goal} — you're at ${_latest.weight}kg with a ${_latest.dailyCalories} kcal/day target. What can I help with?`;
+      }
+ 
+      appendBubble('ai', greeting);
+    }
+ 
+    // ── Send a chip suggestion ────────────────────────────────
+    function chipSend(btn) {
+      document.getElementById('chat-input').value = btn.textContent;
+      // Hide chips after first use so they don't clutter the panel
+      document.getElementById('chat-chips').style.display = 'none';
+      sendChat();
+    }
+ 
+    // ── Main send handler ─────────────────────────────────────
+    async function sendChat() {
+      const input   = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+ 
+      input.value = '';
+ 
+      // Show user bubble immediately
+      appendBubble('user', message);
+ 
+      // Add to history
+      chatHistory.push({ role: 'user', content: message });
+ 
+      // Disable input while waiting
+      const sendBtn = document.getElementById('chat-send-btn');
+      input.disabled    = true;
+      sendBtn.disabled  = true;
+ 
+      // Show typing indicator
+      const typingId = showTyping();
+ 
+      try {
+        const res = await sendChatMessage(message, _latest, chatHistory.slice(0, -1));
+        removeTyping(typingId);
+ 
+        const reply = res.reply || 'Sorry, I had trouble with that. Try again.';
+        appendBubble('ai', reply);
+ 
+        // Add AI reply to history
+        chatHistory.push({ role: 'assistant', content: reply });
+ 
+        // Keep history from growing too large
+        if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+ 
+      } catch (err) {
+        removeTyping(typingId);
+        appendBubble('ai', 'Something went wrong. Please try again in a moment.');
+      } finally {
+        input.disabled   = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+ 
+    // ── Append a chat bubble to the messages list ─────────────
+    function appendBubble(role, text) {
+      const container = document.getElementById('chat-messages');
+      const wrap      = document.createElement('div');
+      wrap.className  = `chat-msg-wrap ${role}`;
+ 
+      const bubble    = document.createElement('div');
+      bubble.className = `chat-bubble ${role}`;
+      bubble.textContent = text;
+ 
+      wrap.appendChild(bubble);
+      container.appendChild(wrap);
+ 
+      // Scroll to bottom
+      container.scrollTop = container.scrollHeight;
+    }
+ 
+    // ── Show animated typing indicator, returns unique id ─────
+    function showTyping() {
+      const container = document.getElementById('chat-messages');
+      const wrap      = document.createElement('div');
+      const id        = 'typing-' + Date.now();
+      wrap.id         = id;
+      wrap.className  = 'chat-msg-wrap ai';
+      wrap.innerHTML  = `<div class="chat-bubble ai"><div class="chat-typing"><span></span><span></span><span></span></div></div>`;
+      container.appendChild(wrap);
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+ 
+    // ── Remove typing indicator by id ─────────────────────────
+    function removeTyping(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  </script>
+</body>
+</html>

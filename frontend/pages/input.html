@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Input – FitAI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .page-wrapper {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .page-header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .page-header p  { color: var(--text-muted); }
+
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 2.5rem;
+    }
+
+    .step {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      font-family: var(--font-head);
+      background: var(--border);
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step.active  { background: var(--primary); color: white; }
+    .step.done    { background: var(--primary-dark); color: white; }
+
+    .step-line {
+      height: 2px;
+      width: 60px;
+      background: var(--border);
+    }
+
+    .step-line.done { background: var(--primary); }
+
+    /* Form sections */
+    .form-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+    .radio-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .radio-option {
+      flex: 1;
+      min-width: 80px;
+    }
+
+    .radio-option input { display: none; }
+
+    .radio-option label {
+      display: block;
+      padding: 0.7rem;
+      text-align: center;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      font-family: var(--font-head);
+      color: var(--text-muted);
+    }
+
+    .radio-option input:checked + label {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    .submit-area { text-align: center; padding-top: 0.5rem; }
+    .submit-area .btn { min-width: 220px; padding: 0.9rem 2rem; font-size: 1rem; }
+
+    @media (max-width: 600px) {
+      .form-row-3 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/" class="logo">Fit<span>AI</span></a>
+    <div class="nav-links">
+      <span id="nav-username" style="font-weight:600; color:var(--primary)"></span>
+      <a href="/dashboard">Dashboard</a>
+      <a href="#" onclick="logout()" style="color:var(--accent)">Logout</a>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Your Fitness Profile</h1>
+      <p>Fill in your details — our AI will analyse and generate your personalised plan.</p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step active">1</div>
+      <div class="step-line"></div>
+      <div class="step">2</div>
+      <div class="step-line"></div>
+      <div class="step">3</div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <!-- Form -->
+    <form id="fitness-form" onsubmit="handleSubmit(event)">
+
+      <!-- Section 1: Personal Info -->
+      <div class="form-section">
+        <div class="section-title">👤 Personal Information</div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Age (years)</label>
+            <input type="number" id="age" min="10" max="100" placeholder="25" required>
+          </div>
+          <div class="form-group">
+            <label>Height (cm)</label>
+            <input type="number" id="height" min="100" max="250" placeholder="175" required>
+          </div>
+          <div class="form-group">
+            <label>Weight (kg)</label>
+            <input type="number" id="weight" min="30" max="300" step="0.1" placeholder="75" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="male" name="gender" value="0" checked>
+              <label for="male">♂ Male</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="female" name="gender" value="1">
+              <label for="female">♀ Female</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Activity & Goal -->
+      <div class="form-section">
+        <div class="section-title">🏃 Activity & Goal</div>
+        <div class="form-group">
+          <label>Activity Level</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="sed" name="activity" value="1" checked>
+              <label for="sed">😴 Sedentary<br><small style="font-weight:400;color:var(--text-muted)">Desk job, little exercise</small></label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="mod" name="activity" value="2">
+              <label for="mod">🚶 Moderate<br><small style="font-weight:400;color:var(--text-muted)">3–4 days/week</small></label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="act" name="activity" value="3">
+              <label for="act">🏋️ Active<br><small style="font-weight:400;color:var(--text-muted)">5+ days/week</small></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fitness Goal</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="loss" name="goal" value="0" checked onchange="toggleTargetWeight()">
+              <label for="loss">⬇ Weight Loss</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="gain" name="goal" value="1" onchange="toggleTargetWeight()">
+              <label for="gain">💪 Muscle Gain</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="maint" name="goal" value="2" onchange="toggleTargetWeight()">
+              <label for="maint">⚖ Maintain</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Target (shown conditionally) -->
+      <div class="form-section" id="target-section">
+        <div class="section-title">🎯 Target Weight</div>
+        <div class="form-group">
+          <label>Target Weight (kg)</label>
+          <input type="number" id="target-weight" min="30" max="250" step="0.1" placeholder="e.g. 70">
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted)">
+          Our AI will predict how many weeks it will take to reach your target using Linear Regression.
+        </p>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-area">
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          🤖 Analyse & Generate Plan
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    // Protect this page — redirect if not logged in
+    requireAuth();
+    setNavbarUser();
+
+    // Show/hide target weight section based on goal
+    function toggleTargetWeight() {
+      const goal = document.querySelector('input[name="goal"]:checked').value;
+      document.getElementById('target-section').style.display =
+        (goal === '0' || goal === '1') ? 'block' : 'none';
+    }
+
+    // Handle form submission
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+
+      // Collect form values
+      const formData = {
+        age:           parseInt(document.getElementById('age').value),
+        gender:        parseInt(document.querySelector('input[name="gender"]:checked').value),
+        height:        parseFloat(document.getElementById('height').value),
+        weight:        parseFloat(document.getElementById('weight').value),
+        activityLevel: parseInt(document.querySelector('input[name="activity"]:checked').value),
+        goal:          parseInt(document.querySelector('input[name="goal"]:checked').value),
+        targetWeight:  parseFloat(document.getElementById('target-weight').value) || null
+      };
+
+      setButtonLoading(btn, true);
+
+      try {
+        const result = await submitFitnessData(formData);
+        // Save result to session storage to display on dashboard
+        sessionStorage.setItem('latestPrediction', JSON.stringify(result.data));
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showAlert('alert-container', err.message);
+        setButtonLoading(btn, false, '🤖 Analyse & Generate Plan');
+      }
+    }
+  </script>
+</body>
+</html>

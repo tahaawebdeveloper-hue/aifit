@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Fitness Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Hero Section ─────────────────────────── */
+    .hero {
+      min-height: calc(100vh - 70px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      background: radial-gradient(ellipse at 70% 50%, rgba(0,200,150,0.08) 0%, transparent 60%);
+    }
+
+    .hero-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-head);
+    }
+
+    .hero h1 {
+      font-size: 3.2rem;
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero h1 span { color: var(--primary); }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      line-height: 1.7;
+    }
+
+    .features-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .feature-item span:first-child { font-size: 1.1rem; }
+
+    /* ── Auth Card ────────────────────────────── */
+    .auth-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      background: #F3F4F6;
+      padding: 0.25rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-muted);
+    }
+
+    .auth-tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .hero h1 { font-size: 2.2rem; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="logo">Fit<span>AI</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#" onclick="scrollToAuth()">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-grid">
+
+      <!-- Left: Pitch -->
+      <div>
+        <div class="hero-badge">
+          🤖 Powered by Machine Learning
+        </div>
+        <h1>Your Personal <span>AI Fitness</span> Trainer</h1>
+        <p>
+          Enter your stats. Our AI calculates your BMI, recommends daily calories,
+          builds your workout plan, and predicts your weight-loss timeline — all personalised for you.
+        </p>
+        <div class="features-preview">
+          <div class="feature-item"><span>📊</span> BMI & body composition analysis</div>
+          <div class="feature-item"><span>🔥</span> Daily calorie prediction (Linear Regression)</div>
+          <div class="feature-item"><span>💪</span> Workout plan (Decision Tree AI)</div>
+          <div class="feature-item"><span>📈</span> Weight-loss timeline prediction</div>
+          <div class="feature-item"><span>📉</span> Progress tracking dashboard</div>
+        </div>
+        <button class="btn btn-primary" onclick="scrollToAuth()">
+          Start Free →
+        </button>
+      </div>
+
+      <!-- Right: Auth Card -->
+      <div id="auth-section" class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchTab('login')">Log In</button>
+          <button class="auth-tab"        onclick="switchTab('register')">Sign Up</button>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="you@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Your password" required>
+          </div>
+          <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%">
+            Log In
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="reg-name" placeholder="Your name" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="reg-email" placeholder="you@email.com" required>
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="reg-password" placeholder="Min 6 chars" required minlength="6">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="register-btn" style="width:100%">
+            Create Account
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="/js/api.js"></script>
+  <script>
+    // Redirect to dashboard if already logged in
+    redirectIfLoggedIn();
+
+    // Switch between Login/Register tabs
+    function switchTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'login' ? i === 0 : i === 1));
+      });
+      document.getElementById('login-form').classList.toggle('active', tab === 'login');
+      document.getElementById('register-form').classList.toggle('active', tab === 'register');
+    }
+
+    // Scroll to auth card on mobile
+    function scrollToAuth() {
+      document.getElementById('auth-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Handle login
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn   = document.getElementById('login-btn');
+      const email = document.getElementById('login-email').value;
+      const pass  = document.getElementById('login-password').value;
+
+      setButtonLoading(btn, true);
+      try {
+        await login(email, pass);
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showAlert('alert-container', err.message);
+        setButtonLoading(btn, false, 'Log In');
+      }
+    }
+
+    // Handle register
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn  = document.getElementById('register-btn');
+      const name = document.getElementById('reg-name').value;
+      const email= document.getElementById('reg-email').value;
+      const pass = document.getElementById('reg-password').value;
+
+      setButtonLoading(btn, true);
+      try {
+        await register(name, email, pass);
+        window.location.href = '/input';
+      } catch (err) {
+        showAlert('alert-container', err.message);
+        setButtonLoading(btn, false, 'Create Account');
+      }
+    }
+  </script>
+</body>
+</html>
