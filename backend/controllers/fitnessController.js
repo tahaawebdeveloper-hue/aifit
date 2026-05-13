@@ -12,7 +12,7 @@ const runPythonModel = (inputData) => {
     const scriptPath = path.join(__dirname, '../../ml-model/predict.py');
 
     // Spawn Python process, pass JSON as argument
-    const py = spawn('python', [scriptPath, JSON.stringify(inputData)]);
+const py = spawn('python3', [scriptPath, JSON.stringify(inputData)]);
 
     let output = '';
     let errorOutput = '';
